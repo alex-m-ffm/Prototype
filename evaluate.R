@@ -24,74 +24,208 @@ for(i in seq_along(results)) {
 # load previously created plan of synthetic data creation
 original <- read.csv2("overview.csv")
 
-# check whether personal data created was also detected
+# proper accuracy calculation ------------------------------------------------
+accuracy <- data.frame()
+for (i in seq_along(original$file)) {
+  #names 
+  #separate
+  if(original[["name_format"]][[i]]=="separate") {
+    # first names
+    if(matches_df[["firstname"]][[i]]=="first_names") {
+      accuracy[i,"firstname"] <- "TP"
+    } else {
+      accuracy[i, "firstname"] <- "FN"
+    }
+    # last names
+    if(matches_df[["lastname"]][[i]]=="last_names") {
+      accuracy[i,"lastname"] <- "TP"
+    } else {
+      accuracy[i, "lastname"] <- "FN"
+    }
+    # errors in case full names are found - except in case the mix column is there
+    if(("first_last" %in% results[[i]][["results"]][["match"]] | "last_first" %in% results[[i]][["results"]][["match"]]) & !("mix" %in% results[[i]][["results"]][["variable"]])){
+      accuracy[i, "name"] <- "FP"
+    } else {
+      accuracy[i, "name"] <- "TN"
+    }
+    
+  } else { #names combined
+    if("first_names" %in% results[[i]][["results"]][["match"]]) {
+      accuracy[i, "firstname"] <- "FP"
+    } else {
+      accuracy[i, "firstname"] <- "TN"
+    }
+    if("last_names" %in% results[[i]][["results"]][["match"]]) {
+      accuracy[i, "lastname"] <- "FP"
+    } else {
+      accuracy[i, "lastname"] <- "TN"
+    }
+    #case of full names 
+    if(matches_df[["name"]][[i]] %in% c("first_last", "last_first")) {
+      accuracy[i,"name"] <- "TP"
+    } else {
+      accuracy[i, "name"] <- "FN"
+    }
+  }
+  #dates always exist
+  if(!is.na(matches_df[["date"]][[i]]) & matches_df[["date"]][[i]]=="date") {
+    accuracy[i,"date"] <- "TP"
+  } else {
+    accuracy[i, "date"] <- "FN"
+  }
+  
+  #addresses
+  #separate
+  if(original[["address_format"]][[i]]=="all_separate") {
+    # street names
+    if(matches_df[["street"]][[i]]=="streetnames") {
+      accuracy[i,"street"] <- "TP"
+    } else {
+      accuracy[i, "street"] <- "FN"
+    }
+    # post codes
+    if(matches_df[["postcode"]][[i]]=="postcode") {
+      accuracy[i,"postcode"] <- "TP"
+    } else {
+      accuracy[i, "postcode"] <- "FN"
+    }
+    # cities
+    if(matches_df[["city"]][[i]]=="cities") {
+      accuracy[i,"city"] <- "TP"
+    } else {
+      accuracy[i, "city"] <- "FN"
+    }
+    # wrong outcomes for combined fields
+    if("streetnames_no" %in% results[[i]][["results"]][["match"]]) {
+      accuracy[i, "street_no"] <- "FP"
+    } else {
+      accuracy[i, "street_no"] <- "TN"
+    }
+    if("address" %in% results[[i]][["results"]][["match"]]) {
+      accuracy[i, "address"] <- "FP"
+    } else {
+      accuracy[i, "address"] <- "TN"
+    }
+  } else {
+    if(original[["address_format"]][[i]]=="streetname_no"){
+      if(!is.na(matches_df[["street_no"]][[i]]) & matches_df[["street_no"]][[i]]=="streetnames_no") {
+        #streetname number combination
+        accuracy[i,"street_no"] <- "TP"
+      } else {
+        accuracy[i, "street_no"] <- "FN"
+      }
+      # post codes
+      if(matches_df[["postcode"]][[i]]=="postcode") {
+        accuracy[i,"postcode"] <- "TP"
+      } else {
+        accuracy[i, "postcode"] <- "FN"
+      }
+      # cities
+      if(matches_df[["city"]][[i]]=="cities") {
+        accuracy[i,"city"] <- "TP"
+      } else {
+        accuracy[i, "city"] <- "FN"
+      }
+      # full address errors
+      if("address" %in% results[[i]][["results"]][["match"]]) {
+        accuracy[i, "address"] <- "FP"
+      } else {
+        accuracy[i, "address"] <- "TN"
+      }
+      if("streetnames" %in% results[[i]][["results"]][["match"]]) {
+        accuracy[i, "street"] <- "FP"
+      } else {
+        accuracy[i, "street"] <- "TN"
+      }
+    } else {
+      if("streetnames_no" %in% results[[i]][["results"]][["match"]]) {
+        accuracy[i, "street_no"] <- "FP"
+      } else {
+        accuracy[i, "street_no"] <- "TN"
+      }
+      if("streetnames" %in% results[[i]][["results"]][["match"]]) {
+        accuracy[i, "street"] <- "FP"
+      } else {
+        accuracy[i, "street"] <- "TN"
+      }
+      if("postcode" %in% results[[i]][["results"]][["match"]]) {
+        accuracy[i, "postcode"] <- "FP"
+      } else {
+        accuracy[i, "postcode"] <- "TN"
+      }
+      if("cities" %in% results[[i]][["results"]][["match"]]) {
+        accuracy[i, "city"] <- "FP"
+      } else {
+        accuracy[i, "city"] <- "TN"
+      }
+      # address
+      if(matches_df[["address"]][[i]]=="address") {
+        accuracy[i,"address"] <- "TP"
+      } else {
+        accuracy[i, "address"] <- "FN"
+      }
+    }
+  }
 
-combined <- cbind(original, matches_df) %>% 
+  #all other columns except mix
+  for (var in c("IP", "IBAN", "email", "creditcard", "sex", 
+                "politics", "health", "taxID", "passport", "phone", "licenseplate")){
+    info <- paste(var, "info", sep = "_")
+    if(original[[info]][[i]]==TRUE){
+      if(!is.na(matches_df[[var]][[i]]) & matches_df[[var]][[i]]==var) {
+        accuracy[i,var] <- "TP"
+      } else {
+        accuracy[i, var] <- "FN"
+      }
+    } else {
+      if(var %in% results[[i]][["results"]][["match"]]){
+        accuracy[i,var] <- "FP"
+      } else {
+        accuracy[i, var] <- "TN"
+      }
+    }
+  }
+  
+  #names in mix columns 
+  if(original[["mix_info"]][[i]]==TRUE){
+    if(!is.na(matches_df[["mix"]][[i]]) & matches_df[["mix"]][[i]] %in% c("first_last", "last_first")) {
+      accuracy[i, "mix"] <- "TP"
+    } else {
+      accuracy[i, "mix"] <- "FN"
+    }
+  }
+}
+
+#compute rates
+
+accuracy_metrics <- accuracy %>% 
+  mutate(file = row.names(.)) %>% 
+  pivot_longer(., names(.)[1:length(names(.))-1], names_to = "variable") %>% 
+  group_by(variable, value) %>% 
+  tally() %>% 
+  filter(!is.na(value)) %>% 
+  pivot_wider(., id_cols = "variable", names_from = "value", values_from = "n") %>% 
   mutate(
-    first_name_found = ifelse(name_format =="separate", 
-                              ifelse("firstname" %in% names(.) & firstname == "first_names", TRUE, FALSE), 
-                              NA),
-    last_name_found = ifelse(name_format =="separate", 
-                             ifelse("lastname" %in% names(.) & lastname == "last_names", TRUE, FALSE), 
-                             NA),
-    full_name_found = ifelse(name_format %in% c("first_last", "last_first"), 
-                             ifelse("name" %in% names(.) & name %in% c("first_last", "last_first"), TRUE, FALSE), 
-                             NA),
-    street_found = ifelse(address_format =="all_separate", 
-                          ifelse("street" %in% names(.) & street == "streetnames", TRUE, FALSE), 
-                          NA),
-    city_found = ifelse(address_format %in% c("all_separate", "streetname_no"), 
-                        ifelse("city" %in% names(.) & city == "cities", TRUE, FALSE), 
-                        NA),
-    street_no_found = ifelse(address_format == "streetname_no", 
-                             ifelse("street_no" %in% names(.) & street_no == "streetnames_no", TRUE, FALSE), 
-                             NA),
-    postcode_found = ifelse(address_format %in% c("all_separate", "streetname_no"), 
-                            ifelse("postcode" %in% names(.) & postcode == "postcode", TRUE, FALSE), 
-                            NA),
-    address_found = ifelse(address_format == "one_string", 
-                           ifelse("address" %in% names(.) & address == "address", TRUE, FALSE), 
-                           NA),
-    date_found = ifelse("date" %in% names(.) & date == "date", TRUE, FALSE),
-    IP_found = ifelse(IP_info == TRUE, 
-                      ifelse("IP" %in% names(.) & IP == "IP", TRUE, FALSE), 
-                      NA),
-    email_found = ifelse(email_info == TRUE, 
-                         ifelse("email" %in% names(.) & email == "email", TRUE, FALSE), 
-                         NA),
-    IBAN_found = ifelse(IBAN_info == TRUE, 
-                        ifelse("IBAN" %in% names(.) & IBAN == "IBAN", TRUE, FALSE), 
-                        NA),
-    credit_found = ifelse(credit_info == TRUE, 
-                          ifelse("credit" %in% names(.) & credit == "creditcard", TRUE, FALSE), 
-                          NA),
-    taxID_found = ifelse(taxID_info == TRUE, 
-                         ifelse("taxID" %in% names(.) & taxID == "taxID", TRUE, FALSE), 
-                         NA),
-    phone_found = ifelse(phone_info == TRUE, 
-                         ifelse("phone" %in% names(.) & phone == "phone", TRUE, FALSE), 
-                         NA),
-    passport_found = ifelse(passport_info == TRUE, 
-                            ifelse("passport" %in% names(.) & passport == "passport", TRUE, FALSE), 
-                            NA),
-    licenseplate_found = ifelse(licenseplate_info == TRUE, 
-                                ifelse("licenseplate" %in% names(.) & licenseplate == "licenseplate", TRUE, FALSE), 
-                                NA),
-    sex_found = ifelse(sex_info == TRUE, 
-                       ifelse("sex" %in% names(.) & sex == "sex", TRUE, FALSE), 
-                       NA),
-    politics_found = ifelse(politics_info == TRUE, 
-                            ifelse("politics" %in% names(.) & politics == "politics", TRUE, FALSE), 
-                            NA),
-    health_found = ifelse(health_info == TRUE, 
-                          ifelse("health" %in% names(.) & health == "health", TRUE, FALSE), 
-                          NA),
-    name_in_mix_found = ifelse(mix_info == TRUE, 
-                               ifelse("mix" %in% names(.) & mix %in% c("first_last","last_first"), TRUE, FALSE), 
-                               NA)
+    TN = ifelse(is.na(TN), 0, TN),
+    TP = ifelse(is.na(TP), 0, TP),
+    FN = ifelse(is.na(FN), 0, FN),
+    recall = TP / (TP + FN),
+    accuracy = (TP + TN)/(TP + TN + FN)
   )
+  
+chart1 <- accuracy_metrics %>% 
+  ggplot(., aes(variable, accuracy)) +
+  geom_col() +
+  coord_flip()
 
-tool_recall <- combined %>% select(ends_with("_found")) %>% map_dbl(., mean, na.rm = TRUE)
-tool_recall
+chart1
 
-write.csv2(combined, file = "results.csv", row.names = FALSE)
+chart2 <- accuracy_metrics %>% 
+  ggplot(., aes(variable, recall)) +
+  geom_col() +
+  coord_flip()
+
+chart2
+
+write.csv2(matches_df, file = "results.csv", row.names = FALSE)
+write.csv2(accuracy, file = "accuracy.csv", row.names = FALSE)
