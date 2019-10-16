@@ -23,7 +23,7 @@ overview <- data.frame(file = paste0("set_", 1:no_sets, ".csv"),
                        IP_info = sample(c(TRUE, FALSE), size = no_sets, replace = TRUE, prob = c(0.1, 0.9)),
                        IBAN_info = sample(c(TRUE, FALSE), size = no_sets, replace = TRUE, prob = c(0.1, 0.9)),
                        email_info = sample(c(TRUE, FALSE), size = no_sets, replace = TRUE, prob = c(0.6, 0.4)),
-                       credit_info = sample(c(TRUE, FALSE), size = no_sets, replace = TRUE, prob = c(0.1, 0.9)),
+                       creditcard_info = sample(c(TRUE, FALSE), size = no_sets, replace = TRUE, prob = c(0.1, 0.9)),
                        sex_info = sample(c(TRUE, FALSE), size = no_sets, replace = TRUE, prob = c(0.3, 0.7)),
                        politics_info = sample(c(TRUE, FALSE), size = no_sets, replace = TRUE, prob = c(0.3, 0.7)),
                        health_info = sample(c(TRUE, FALSE), size = no_sets, replace = TRUE, prob = c(0.4, 0.6)),
@@ -44,21 +44,21 @@ overview <- data.frame(file = paste0("set_", 1:no_sets, ".csv"),
 ) %>% 
   mutate(
     # make share of empty cells variable and record it
-    names_na = pmin(pmax(rnorm(no_sets, 0.3, 0.2),0),1),
-    address_na = pmin(pmax(rnorm(no_sets, 0.3, 0.2),0),1),
-    date_na = pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1),
-    IP_na = ifelse(IP_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    IBAN_na = ifelse(IBAN_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    email_na = ifelse(email_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    credit_na = ifelse(credit_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    sex_na = ifelse(sex_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    politics_na = ifelse(politics_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    health_na = ifelse(health_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    taxID_na = ifelse(taxID_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    passport_na = ifelse(passport_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    phone_na = ifelse(phone_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    licenseplate_na = ifelse(licenseplate_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0),1), NA),
-    mix_na = ifelse(mix_info== TRUE, pmin(pmax(rnorm(no_sets, 0.3, 0.2),0),1), NA)
+    names_na = pmin(pmax(rnorm(no_sets, 0.3, 0.2),0), 0.9),
+    address_na = pmin(pmax(rnorm(no_sets, 0.3, 0.2),0), 0.9),
+    date_na = pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9),
+    IP_na = ifelse(IP_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    IBAN_na = ifelse(IBAN_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    email_na = ifelse(email_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    creditcard_na = ifelse(creditcard_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    sex_na = ifelse(sex_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    politics_na = ifelse(politics_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    health_na = ifelse(health_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    taxID_na = ifelse(taxID_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    passport_na = ifelse(passport_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    phone_na = ifelse(phone_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    licenseplate_na = ifelse(licenseplate_info== TRUE, pmin(pmax(rnorm(no_sets, 0.5, 0.2),0), 0.9), NA),
+    mix_na = ifelse(mix_info== TRUE, pmin(pmax(rnorm(no_sets, 0.3, 0.2),0), 0.9), NA)
   )
                        
 load("dictionaries.RData")
@@ -179,13 +179,13 @@ for (i in seq_along(overview[["file"]])){
   }
   
   # add credit card
-  if (overview[["credit_info"]][[i]]==TRUE){
-    df$credit <- paste0(str_pad(sample(4000:4999, size = size, replace = TRUE), 4, side = "left", pad = "0"),
+  if (overview[["creditcard_info"]][[i]]==TRUE){
+    df$creditcard <- paste0(str_pad(sample(4000:4999, size = size, replace = TRUE), 4, side = "left", pad = "0"),
       str_pad(sample(1:9999, size = size, replace = TRUE), 4, side = "left", pad = "0"),
       str_pad(sample(1:9999, size = size, replace = TRUE), 4, side = "left", pad = "0"),
       str_pad(sample(1:9999, size = size, replace = TRUE), 4, side = "left", pad = "0"))
     # set some cells NA
-    df[sample(1:size, round(size * overview[["credit_na"]][[i]])), "credit"] <- NA
+    df[sample(1:size, round(size * overview[["creditcard_na"]][[i]])), "creditcard"] <- NA
   }
 
   # add e-mail info
