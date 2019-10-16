@@ -123,6 +123,8 @@ sources_gamma %>%
   geom_boxplot() +
   facet_wrap(~ title)
 
+ggsave("LDA_sources_to_topic_narrow.png", width = 8, units = "cm")
+
 #identify the topic numbers for the specific sources
 topic_IDs <- sources_gamma %>% 
   group_by(title, topic) %>% 
