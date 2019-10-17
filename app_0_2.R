@@ -1,5 +1,6 @@
 library(shiny)
 library(tidyverse)
+library(tokenizers)
 
 # load files containing full algorithm as function
 load("algorithm.RData")

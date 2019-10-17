@@ -1,15 +1,16 @@
-# library(tidyverse)
+library(tidyverse)
+library(tokenizers)
 
 # load files containing full algorithm as function
 # load("algorithm.RData")
 
-# filename <- "set_9.csv"
+filename <- "set_4.csv"
 
 # test <- read.csv(filename, sep = ",", header = TRUE,
 #                  na.strings = "", strip.white = TRUE, colClasses = "character", fileEncoding = "UTF-8")
 
-# test <- read.csv(filename, sep = ";", header = TRUE,
-#                  na.strings = "", strip.white = TRUE, colClasses = "character", fileEncoding = "UTF-8")
+test <- read.csv(filename, sep = ";", header = TRUE,
+                 na.strings = "", strip.white = TRUE, colClasses = "character", fileEncoding = "UTF-8")
 
 detect_data_type <- function(df) {
   #measure time
@@ -91,7 +92,10 @@ rm(detected, matches)
 
   # check for terms that are also part of our topic model
   check_text <- df[remaining_columns] %>%
-    map_dbl(., function(df) sum(tolower(df) %in% sources_terms$term)) %>%
+    map_dbl(., function(df) {
+      df <- tokenize_words(df) %>% unlist(.)
+      sum(tolower(df) %in% sources_terms$term)
+      }) %>%
     enframe(name = "variable", value = "text_found") %>%
     filter(text_found > 0) %>% #filter out the columns without any matches
     .$variable # just get the column names
@@ -113,7 +117,8 @@ rm(detected, matches)
     #   left_join(., topic_IDs, by = c("top_topic" = "topic")) %>%
     #   .$title %>% as.character() %>% append(topic_matches, .)
     
-    topic_check <- df[column] %>% rename(., text = names(.)) %>%
+    topic_check <- as.character(df[column]) %>% tokenize_words(.) %>% unlist(.) %>% 
+      enframe(., name = NULL, value = "text") %>%
       mutate(text = tolower(text)) %>%
       left_join(., betas_wide, by = c("text" = "term")) %>%
       summarise(
@@ -122,13 +127,13 @@ rm(detected, matches)
         beta_3 = mean(`3`, na.rm = TRUE)
       )
     # if the mean beta probabilities are too low delete the column
-    if(topic_check$beta_1 < thresholds$threshold[1]){
+    if(!is.na (topic_check$beta_1) & topic_check$beta_1 < thresholds$threshold[1]){
       topic_check$beta_1 <- NULL
     }
-    if(topic_check$beta_2 < thresholds$threshold[2]){
+    if(!is.na (topic_check$beta_2) & topic_check$beta_2 < thresholds$threshold[2]){
       topic_check$beta_2 <- NULL
     }
-    if(topic_check$beta_3 < thresholds$threshold[3]){
+    if(!is.na (topic_check$beta_3) & topic_check$beta_3 < thresholds$threshold[3]){
       topic_check$beta_3 <- NULL
     }
     # if anything remains, determine the maximum value and retrieve the topic name from the topic number
@@ -137,7 +142,7 @@ rm(detected, matches)
       topic_matches <- topic_check %>% which.max() %>% enframe(name = "column", value = "top_topic") %>%
         left_join(., topic_IDs, by = c("top_topic" = "topic")) %>%
         .$title %>% as.character() %>% append(topic_matches, .)
-    }
+    } else {topic_matches <- append(topic_matches, NULL)}
   }
 
   model_outcome <- data.frame(variable = text_detected,
@@ -152,4 +157,4 @@ rm(detected, matches)
               runtime = runtime))
 }
 
-# detect_data_type(test)
+detect_data_type(test)
