@@ -6,7 +6,8 @@ load("algorithm.Rdata")
 # run algorithm --------------------------------------------
 
 results <- as.list(paste0("set_", 1:50, ".csv")) %>% lapply(., function(x){
-  df <- read.csv2(x, fileEncoding = "UTF-8", colClasses = "character")
+  df <- read.csv2(x, na.strings = "", strip.white = TRUE, 
+                  fileEncoding = "UTF-8", colClasses = "character")
   return(detect_data_type(df))
 }
 )
@@ -23,6 +24,8 @@ for(i in seq_along(results)) {
 
 # load previously created plan of synthetic data creation
 original <- read.csv2("overview.csv")
+
+matches_df <- cbind(file = original$file, matches_df)
 
 # proper accuracy calculation ------------------------------------------------
 accuracy <- data.frame()
@@ -196,11 +199,12 @@ for (i in seq_along(original$file)) {
   }
 }
 
+accuracy <- cbind(file = original$file, accuracy)
+
 #compute rates
 
 accuracy_metrics <- accuracy %>% 
-  mutate(file = row.names(.)) %>% 
-  pivot_longer(., names(.)[1:length(names(.))-1], names_to = "variable") %>% 
+  pivot_longer(., names(.)[2:length(names(.))], names_to = "variable") %>% 
   group_by(variable, value) %>% 
   tally() %>% 
   filter(!is.na(value)) %>% 
@@ -208,9 +212,10 @@ accuracy_metrics <- accuracy %>%
   mutate(
     TN = ifelse(is.na(TN), 0, TN),
     TP = ifelse(is.na(TP), 0, TP),
-    FN = ifelse(is.na(FN), 0, FN),
+    FN = ifelse("FN" %in% names(.), ifelse(!is.na(FN), FN, 0), 0),
+    FP = ifelse("FP" %in% names(.), ifelse(!is.na(FF), FP, 0), 0),
     recall = TP / (TP + FN),
-    accuracy = (TP + TN)/(TP + TN + FN)
+    accuracy = (TP + TN)/(TP + TN + FN + FP)
   )
   
 chart1 <- accuracy_metrics %>% 
@@ -219,6 +224,7 @@ chart1 <- accuracy_metrics %>%
   coord_flip()
 
 chart1
+ggsave("accuracy.png", width = 8, units = "cm")
 
 chart2 <- accuracy_metrics %>% 
   ggplot(., aes(variable, recall)) +
@@ -226,6 +232,7 @@ chart2 <- accuracy_metrics %>%
   coord_flip()
 
 chart2
+ggsave("recall.png", width = 8, units = "cm")
 
 write.csv2(matches_df, file = "results.csv", row.names = FALSE)
 write.csv2(accuracy, file = "accuracy.csv", row.names = FALSE)
