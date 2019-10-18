@@ -1,6 +1,7 @@
 # libraries -----------------------------------------------
 
 library(tidyverse)
+library(tokenizers)
 load("algorithm.Rdata")
 
 # run algorithm --------------------------------------------
