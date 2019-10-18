@@ -320,5 +320,12 @@ for (i in seq_along(overview[["file"]])){
   write.csv2(df, file = overview[["file"]][[i]], row.names = FALSE, na = "", fileEncoding = "UTF-8")
 }
 
+# retrieve size of files in bytes
+info <- file.info(dir()) %>% 
+  mutate(file = row.names(.)) %>% 
+  select(file, size) %>% 
+  filter(substr(file, 1, 4) == "set_")
 
+overview <- cbind(overview, size = info$size)
+  
 write.csv2(overview, file = "overview.csv", row.names = FALSE)
